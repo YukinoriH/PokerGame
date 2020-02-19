@@ -18,9 +18,11 @@ namespace PokerEngine
             Console.ReadLine();
         }
 
+        private static int amount = 100;
+        private static int pot = 0;
         private static void beginPlay(int numCPU)
         {          
-            bool playCont = true; bool roundCont = true; int amount = 100; int count;
+            bool playCont = true; int count;
             List<CPU> listOfCPUS = new List<CPU>();
             for (int x = 0; x < numCPU; x++)
             {
@@ -31,54 +33,32 @@ namespace PokerEngine
             while (playCont)
             {
                 List<string[]> cardsInPlay = dealCards(numCPU);
-                count = 1;
+                count = 2;
                 foreach (CPU comp in listOfCPUS)
                 {
                     comp.setUpCPUHand(cardsInPlay[count][0], cardsInPlay[count][1]);
                     count++;
                 }
-                string[] winners = MainProgram.findPokerWinner(formatList(cardsInPlay));
-                Console.WriteLine("Your cards: " + cardsInPlay[1][0] + " " + cardsInPlay[1][1]);
-                int revealCards = 3; string commCards = ""; int pot = 0; 
+                
+                int revealCards = 3; string commCards = ""; bool roundCont = true; bool playerFold = false;
                 while (roundCont)
                 {
-                    bool playerChoice = true;
-                    while (playerChoice)
+                    bool playerChoice1 = true;
+                    while (playerChoice1)
                     {
-                        playerChoice = false;
-                        Console.WriteLine("Current Pot: " + pot);
-                        Console.WriteLine("What would you like to do? (Fold, Bet, Check, Call) Remaining amount: " + amount);
-                        String playerInput = Console.ReadLine();
-                        if (playerInput.Equals("Bet"))
+                        int contPlay = playerTurn(commCards, cardsInPlay);
+                        if (contPlay == 0)
                         {
-                            Console.WriteLine("How much will you bet? Remaining amount: " + amount);
-                            int betAmount = Int32.Parse(Console.ReadLine());
-                            pot += setBets(amount, betAmount);
-                            amount -= betAmount;
-                        }
-                        else if (playerInput.Equals("Check"))
-                        {
-
-                        }
-                        else if (playerInput.Equals("Fold"))
-                        {
-                            for (int x = 0; x < 5; x++)
-                            {
-                                commCards = commCards + cardsInPlay[0][x] + " ";
-                            }
-                            Console.WriteLine("Community Cards: " + commCards);
                             revealCards = 6;
-                        }
-                        else if (playerInput.Equals("Call"))
+                            playerFold = true;
+                            playerChoice1 = false;
+                        } else if (contPlay == 1)
                         {
+                            playerChoice1 = false;
+                        }
 
-                        }
-                        else
-                        {
-                            Console.WriteLine("Unkown Command. Please write a valid command");
-                            playerChoice = true;
-                        }
                     }
+
                     foreach(CPU comp in listOfCPUS)
                     {
                         comp.checkState(null);
@@ -98,16 +78,94 @@ namespace PokerEngine
                     }
                     commCards = ""; revealCards++;
                 }
-                Console.WriteLine("Would you like to continue? y/n");
-                string exit = Console.ReadLine();
-                if (exit.Equals("n"))
-                {
-                    Console.WriteLine("Your winnings: " + amount);
-                    playCont = false;
-                }
 
+                int cpuNum = 1;
+                foreach (string [] x in cardsInPlay)
+                {
+                    if(x.Length < 3)
+                    {
+                        if (playerFold)
+                        {
+                            Console.WriteLine("CPU" + cpuNum++ + "'s Hand: " + x[0] + " " + x[1]);
+                        } else
+                        {
+                            Console.WriteLine("Player's Hand: " + x[0] + " " + x[1]);
+                            playerFold = true;
+                        }
+                        
+                    }                  
+                }
+                string[] winners = MainProgram.findPokerWinner(formatList(cardsInPlay,playerFold));
+
+                Console.WriteLine(winners[0] + " wins!");
+                Console.WriteLine("Would you like to continue? y/n");
+                bool playerChoice2 = true;
+                while (playerChoice2)
+                {
+                    string exit = Console.ReadLine();
+                    if (exit.Equals("n"))
+                    {
+                        Console.WriteLine("Your winnings: " + amount);
+                        playCont = false;
+                        playerChoice2 = false;
+                    }
+                    else if (exit.Equals("y"))
+                    {
+                        Console.WriteLine("Your winnings: " + amount);
+                        playerChoice2 = false;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Unkown Command. Please write a valid command");
+                    }
+                }
             }
 
+        }
+        private static int playerTurn(string commCards,List<string[]> cardsInPlay)
+        {
+            Console.WriteLine("Current Pot: " + pot);
+            Console.WriteLine("Your cards: " + cardsInPlay[1][0] + " " + cardsInPlay[1][1]);
+            Console.WriteLine("What would you like to do? (Fold, Bet, Check) Remaining amount: " + amount);
+            String playerInput = Console.ReadLine().ToLower();
+            if (playerInput.Equals("bet"))
+            {
+                Console.WriteLine("How much will you bet? Remaining amount: " + amount);
+                while (true)
+                {
+                    try
+                    {
+                        int betAmount = Int32.Parse(Console.ReadLine());
+                        pot += setBets(amount, betAmount);
+                        amount -= betAmount;
+                        break;
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("Please input a valid integer value");
+                    }
+                }
+                return 1;
+            }
+            else if (playerInput.Equals("check"))
+            {
+                return 1;
+            }
+            else if (playerInput.Equals("fold"))
+            {
+                for (int x = 0; x < 5; x++)
+                {
+                    commCards = commCards + cardsInPlay[0][x] + " ";
+                }
+                cardsInPlay.RemoveAt(1);
+                Console.WriteLine("Community Cards: " + commCards);              
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Unkown Command. Please write a valid command");
+                return 2;
+            }
         }
 
         private static int setBets(int amount, int betAmount)
@@ -115,9 +173,9 @@ namespace PokerEngine
             return betAmount;
         }
 
-        private static string formatList(List<string[]> cardsInPlay)
+        private static string formatList(List<string[]> cardsInPlay, bool playerFold)
         {
-            string returnString = ""; string temp = "";int count = 0;
+            string returnString = ""; string temp = "";int count = 1;
             for(int x = 0; x < cardsInPlay.Count; x++)
             {
                 if (x == 0)
@@ -134,8 +192,16 @@ namespace PokerEngine
                 }
                 else
                 {
-                    temp = "PlayerX ";
-                    for (int j = 0; j < cardsInPlay[x].Length; j++)
+                    if (!playerFold && x == 1)
+                    {
+                        temp = "Player" + " ";
+                    }
+                    else
+                    {
+                        temp = "CPU" + count++ + " ";
+                    }
+
+                    for (int j = 0; j < 2; j++)
                     {
                         temp = temp + cardsInPlay[x][j];
                         if (j != cardsInPlay[x].Length - 1)
@@ -144,8 +210,10 @@ namespace PokerEngine
                         }
                     }
                     returnString += temp;
-                    returnString += "\r\n";
-
+                    if(x != cardsInPlay.Count - 1)
+                    {
+                        returnString += "\r\n";
+                    }                    
                     
                 }
 
@@ -172,6 +240,7 @@ namespace PokerEngine
             cardsInPlay.Add(commCards);
             for (int j = 5; j < totalCards; j+=2)
             {
+                playerHand = new string[2];
                 playerHand[0] = Cards.allCards[randomCards.ElementAt<int>(j)];
                 playerHand[1] = Cards.allCards[randomCards.ElementAt<int>(j + 1)];
                 cardsInPlay.Add(playerHand);

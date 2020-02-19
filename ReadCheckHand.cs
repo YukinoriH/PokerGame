@@ -355,6 +355,10 @@ namespace SDK
         }
         private void CreateHandTable()
         {
+            suiteTable = new Dictionary<string, int>();
+            numberTable = new Dictionary<string, int>();
+            handTable = new Dictionary<string, int>();
+
             //Heart, Spade, Dimond, Clubs
             suiteTable.Add("D", 0);
             suiteTable.Add("C", 0);

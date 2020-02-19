@@ -51,7 +51,7 @@ namespace ComputerPlayer
 
         private static int betAmount(string[] cards, string[] commCards)
         {
-            checkState();
+            //checkState();
             return 0;
         }
         private static int checkOdds()
